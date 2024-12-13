@@ -36,7 +36,7 @@ python train.py \
 --robust_loss_mse \
 --robust_loss \
 ```
-Toggling ```bash--cf``` for counterfactual learning schema, ```bash--pt``` for disable polar transformation, ```bash--verbose``` for progressive bar. ```bash--robust_aug``` applies random augmentation of chanign the FOV and alignment. ```bash--robust_loss``` and ```bash--robust_loss_mse``` are the triplet and MSE losses between the augmented ground image and original.
+Toggling ```--cf``` for counterfactual learning schema, ```--pt``` for disable polar transformation, ```--verbose``` for progressive bar. ```--robust_aug``` applies random augmentation of chanign the FOV and alignment. ```--robust_loss``` and ```--robust_loss_mse``` are the triplet and MSE losses between the augmented ground image and original.
 ### Evaluation
 ---
 ```bash
