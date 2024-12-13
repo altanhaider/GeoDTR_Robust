@@ -1,9 +1,5 @@
-## Implementation for "Cross-view Geo-localization via Learning Disentangled Geometric Layout Correspondence"
-
-[[Paper]](https://arxiv.org/pdf/2212.04074.pdf)
-[[Slides]](./resources/AAAI_presentation.pdf)
-
-![Poster](./resources/AAAI_poster_long.png)
+# Overview
+This is a re-implementation of the paper ["Cross-view Geo-localization via Learning Disentangled Geometric Layout Correspondence"](https://arxiv.org/abs/2212.04074). We extend this work by making it adaptable to limited FOV and non-north-aligned input ground images. This work was implemented as a class project for the course CS6540:Deep learning.
 
 ### Prerequisites
 ---
@@ -22,22 +18,6 @@
 - We obtain the permission of CVUSA dataset from the owner by submit the [MVRL Dataset Request Form](https://mvrl.cse.wustl.edu/datasets/cvusa/).
 - Please refer to the repo: [https://github.com/viibridges/crossnet](https://github.com/viibridges/crossnet)
 
-#### CVACT
-
-- We obtain the permission of CVACT dataset by contacting the author directly.
-- Please refer to the repo: [https://github.com/Liumouliu/OriCNN](https://github.com/Liumouliu/OriCNN)
-
-#### Pre-processing
-
-To prepare data, we follow the method of [SAFA](https://github.com/shiyujiao/cross_view_localization_SAFA). Before running the code, one should pre-process the dataset with the provided file `data_preparation.py`.
-
-#### Check duplicate images in CVUSA
-
-To get the duplicate images in CVUSA dataset as reported in the main paper. Please change the directory in line 7 of `check_cvusa_duplicate.py` and run it to check duplicate files. A json file with all duplicate pairs will be generated and one can use it to remove those files. 
-
-Or
-
-You can directly download the cleaned CVUSA training and validation files [here](./resources/CVUSA_cleaned.zip). Copy and paste the unzipped files under ```YOUR_PATH_TO_CVUSA/dataset/splits/``` folder to replace the original files. 
 
 ### Training
 ---
@@ -51,9 +31,12 @@ python train.py \
 --layout_sim strong \
 --sem_aug strong \
 --pt \
---cf
+--cf \
+--robust_aug strong \
+--robust_loss_mse \
+--robust_loss \
 ```
-
+Toggling --cf for counterfactual learning schema, --pt for disable polar transformation, --verbose for progressive bar. --robust_aug applies random augmentation of chanign the FOV and alignment. --robust_loss and --robust_loss_mse are the triplet and MSE losses between the augmented ground image and original.
 ### Evaluation
 ---
 ```bash
