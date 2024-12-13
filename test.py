@@ -21,12 +21,13 @@ def count_parameters(model):
 
 def GetBestModel(path):
     all_files = os.listdir(path)
-    if "epoch_last" in all_files:
-        all_files.remove("epoch_last")
+    # if "epoch_last" in all_files:
+    #     all_files.remove("epoch_last")
     config_files =  list(filter(lambda x: x.startswith('epoch_'), all_files))
-    config_files = sorted(list(map(lambda x: int(x.split("_")[1]), config_files)), reverse=True)
+    # config_files = sorted(list(map(lambda x: int(x.split("_")[1]), config_files)), reverse=True)
     best_epoch = config_files[0]
-    return os.path.join('epoch_'+str(best_epoch), 'epoch_'+str(best_epoch)+'.pth')
+    # return os.path.join('epoch_'+str(best_epoch), 'epoch_'+str(best_epoch)+'.pth')
+    return os.path.join(str(best_epoch), str(best_epoch)+'.pth')
 
 
 if __name__ == "__main__":
@@ -35,6 +36,10 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', default='CVUSA', choices=['CVUSA', 'CVACT'], help='choose between CVUSA or CVACT')
     parser.add_argument('--verbose', default=False, action='store_true')
     parser.add_argument('--model_path', type=str, help='path to model weights')
+    parser.add_argument('--fov', default=360, type=int, help='Field of View e.g. 360, 270, 180 etc.')
+    parser.add_argument('--orient', type=str, help='orientation [left, right, back, none]')
+
+
 
     opt = parser.parse_args()
 
@@ -51,11 +56,21 @@ if __name__ == "__main__":
     
     if opt.dataset == 'CVACT':
         data_path = os.path.join(opt.data_dir, 'CVACT')
-        dataset = ACTDataset(data_dir = data_path, layout_simulation='none', sematic_aug='none', is_polar=opt.pt, mode='val')
+        dataset = ACTDataset(data_dir = data_path, 
+                             layout_simulation='none', 
+                             sematic_aug='none', 
+                             is_polar=opt.pt, 
+                             mode='val')
         validateloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8)
     if opt.dataset == 'CVUSA':
         data_path = os.path.join(opt.data_dir, 'CVUSA', 'dataset')
-        dataset = USADataset(data_dir = data_path, layout_simulation='none', sematic_aug='none', mode='val', is_polar=opt.pt)
+        dataset = USADataset(data_dir = data_path, 
+                             layout_simulation='strong', 
+                             sematic_aug='strong', 
+                             mode='val', 
+                             is_polar=False, 
+                             fov=opt.fov, 
+                             ground_ort=opt.orient)
         validateloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8)
     
     print("number of test samples : ", len(dataset), flush=True)
@@ -65,7 +80,7 @@ if __name__ == "__main__":
                    tr_layers = opt.TR_layers, 
                    dropout = opt.dropout, 
                    d_hid = opt.TR_dim, 
-                   is_polar = opt.pt)
+                   is_polar = False)
     embedding_dims = opt.n_des * 512
     model = nn.DataParallel(model)
     model.to(device)
@@ -73,7 +88,9 @@ if __name__ == "__main__":
     best_model = GetBestModel(opt.model_path)
     best_model = os.path.join(opt.model_path, best_model)
     print("loading model : ", best_model, flush=True)
-    model.load_state_dict(torch.load(best_model)['model_state_dict'])
+    model.load_state_dict(torch.load(best_model, weights_only=False)['model_state_dict'], 
+                        #   strict=False
+                          )
 
     num_params = count_parameters(model)
     print(f"model parameters : {num_params}M", flush=True)

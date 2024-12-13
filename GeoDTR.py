@@ -9,7 +9,7 @@ from torch.nn import TransformerEncoder, TransformerEncoderLayer
 class ResNet34(nn.Module):
     def __init__(self):
         super().__init__()
-        net = models.resnet34(pretrained = True)
+        net = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
         layers = list(net.children())[:3]
         layers_end = list(net.children())[4:-2]
         self.layers = nn.Sequential(*layers, *layers_end)
@@ -76,7 +76,7 @@ class GeoLayoutExtractor(nn.Module):
         self.w1, self.b1 = self.init_weights_(in_dim, hid_dim, n_des)
         self.w2, self.b2 = self.init_weights_(hid_dim, in_dim, n_des)
         if self.tr_layers != 0:
-            self.tr_module = TRModule(d_model = hid_dim, 
+            self.safa_tr = TRModule(d_model = hid_dim, 
                                       n_des = n_des, 
                                       nhead = tr_heads, 
                                       nlayers = tr_layers, 
@@ -98,7 +98,7 @@ class GeoLayoutExtractor(nn.Module):
         pos_normalized = pos / channel
         mask = torch.einsum('bi, idj -> bdj', mask, self.w1) + self.b1
         if self.tr_layers != 0:
-            mask = self.tr_module(mask, pos_normalized)
+            mask = self.safa_tr(mask, pos_normalized)
         mask = torch.einsum('bdj, jdi -> bdi', mask, self.w2) + self.b2
         mask = mask.permute(0,2,1)
         return mask
@@ -122,13 +122,13 @@ class GeoDTR(nn.Module):
         else:
             in_dim_sat = 256
             in_dim_grd = 336
-        self.ge_grd = GeoLayoutExtractor(in_dim = in_dim_grd, 
+        self.spatial_aware_grd = GeoLayoutExtractor(in_dim = in_dim_grd, 
                                          n_des = n_des, 
                                          tr_heads = tr_heads, 
                                          tr_layers = tr_layers, 
                                          dropout = dropout, 
                                          d_hid = d_hid)
-        self.ge_sat = GeoLayoutExtractor(in_dim=in_dim_sat, 
+        self.spatial_aware_sat = GeoLayoutExtractor(in_dim=in_dim_sat, 
                                          n_des=n_des, 
                                          tr_heads=tr_heads, 
                                          tr_layers=tr_layers, 
@@ -141,8 +141,8 @@ class GeoDTR(nn.Module):
         grd_x = self.backbone_grd(grd)
         sat_x = sat_x.view(b, sat_x.shape[1], -1)
         grd_x = grd_x.view(b, grd_x.shape[1], -1)
-        sat_sa = self.ge_sat(sat_x)
-        grd_sa = self.ge_grd(grd_x)
+        sat_sa = self.spatial_aware_sat(sat_x)
+        grd_sa = self.spatial_aware_grd(grd_x)
         sat_sa = F.hardtanh(sat_sa)
         grd_sa = F.hardtanh(grd_sa)
         if is_cf:

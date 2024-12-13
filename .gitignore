@@ -1,0 +1,15 @@
+# .gitignore
+*.h5       # Exclude HDF5 weight files
+*.pth      # Exclude PyTorch weight files
+*.pt       # Exclude PyTorch model files
+*.ipynb
+*.err
+*.out
+*.md
+*.sh
+weights/   # Exclude the entire weights folder
+__pycache__/
+1733954021_GeoDTR_CVUSA_True_False_test/
+1733981677_GeoDTR_CVUSA_False_False_test/
+1734021786_GeoDTR_CVUSA_False_False_test/
+weights

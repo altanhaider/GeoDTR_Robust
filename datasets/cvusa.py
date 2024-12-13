@@ -6,7 +6,7 @@ from PIL import Image
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
-
+from random import randrange
 from .layoutsim import HFlip, Rotate
 
 
@@ -16,13 +16,21 @@ class USADataset(Dataset):
         data_dir = "../scratch/CVUSA/dataset/", 
         layout_simulation = 'strong', 
         sematic_aug = 'strong',
+        robust_aug='strong',
         mode = 'train', 
-        is_polar = True
+        is_polar = True,
+        ground_ort = 'none',
+        fov = 360
     ):
         self.data_dir = data_dir
 
         STREET_IMG_WIDTH = 671
         STREET_IMG_HEIGHT = 122
+        
+        self.STREET_IMG_WIDTH = STREET_IMG_WIDTH
+        self.ground_orientation = ground_ort
+        self.fov = fov
+        self.robust_aug = robust_aug
 
         self.is_polar = is_polar
         self.mode = mode
@@ -105,7 +113,36 @@ class USADataset(Dataset):
 
         satellite = self.transforms_sat(satellite)
         ground = self.transforms_street(ground)
-
+        
+        ground_original = ground.clone().detach()
+        
+        if self.robust_aug=='strong':
+            
+            orientation = random.choice(['left', 'right', 'back', 'none'])
+            
+            if self.ground_orientation != 'none': #left, right, back
+                _, ground = Rotate(satellite, ground, orientation, self.is_polar)
+            
+            # limited FOV
+            FOV = random.randint(70, 360)
+            occlusion_degree = int(360-FOV) #0-360
+            occlusion_box_width = (self.STREET_IMG_WIDTH*occlusion_degree)//(360)
+            occlusion_box_center = randrange(occlusion_box_width//2 + 1, self.STREET_IMG_WIDTH-(occlusion_box_width//2)-1)
+            ground[:,:,occlusion_box_center-occlusion_box_width//2:occlusion_box_center+occlusion_box_width//2] = 1.
+        
+        if self.robust_aug=='none':
+            orientation = self.ground_orientation
+            FOV = self.fov
+            
+            if self.ground_orientation != 'none': #left, right, back
+                _, ground = Rotate(satellite, ground, orientation, self.is_polar)
+            
+            # limited FOV
+            occlusion_degree = int(360-self.fov) #0-360
+            occlusion_box_width = (self.STREET_IMG_WIDTH*occlusion_degree)//(360)
+            occlusion_box_center = randrange(occlusion_box_width//2 + 1, self.STREET_IMG_WIDTH-(occlusion_box_width//2)-1)
+            ground[:,:,occlusion_box_center-occlusion_box_width//2:occlusion_box_center+occlusion_box_width//2] = 1.
+        
         if self.layout_simulation == "strong":
             hflip = random.randint(0,1)
             if hflip == 1:
@@ -132,7 +169,7 @@ class USADataset(Dataset):
         else:
             raise RuntimeError(f"layout simulation {self.layout_simulation} is not implemented")
 
-        return {'satellite':satellite, 'ground':ground}
+        return {'satellite': satellite, 'ground': ground, 'ground_original': ground_original}
 
 
     def __len__(self):
